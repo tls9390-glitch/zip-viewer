@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
 import '../services/zip_service.dart';
 import '../services/bookmark_service.dart';
@@ -50,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
       final lastPage = await BookmarkService.getLastPage(filePath);
-      await BookmarkService.addRecentFile(filePath);
+      
       if (mounted) {
         await Navigator.push(
           context,
@@ -85,7 +86,10 @@ class _HomeScreenState extends State<HomeScreen> {
             Icon(Icons.menu_book, color: Color(0xFFE8B86D), size: 26),
             SizedBox(width: 10),
             Text('ZIP Viewer',
-                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -101,39 +105,33 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             )
           : Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.menu_book, size: 80, color: Color(0xFFE8B86D)),
-                    const SizedBox(height: 24),
-                    const Text('ZIP Viewer',
-                        style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    const Text('ZIP, CBZ 압축파일 이미지 뷰어',
-                        style: TextStyle(color: Colors.white54, fontSize: 14)),
-                    const SizedBox(height: 48),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _openFileBrowser,
-                        icon: const Icon(Icons.folder_open, size: 24),
-                        label: const Text('파일 열기',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE8B86D),
-                          foregroundColor: const Color(0xFF1A1A1A),
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.all(16),
+                    child: ElevatedButton.icon(
+                      onPressed: _openFileBrowser,
+                      icon: const Icon(Icons.folder_open, size: 22),
+                      label: const Text('ZIP / CBZ 파일 열기',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE8B86D),
+                        foregroundColor: const Color(0xFF1A1A1A),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    const Text('지원 형식: .zip  .cbz  .cbr',
-                        style: TextStyle(color: Colors.white30, fontSize: 12)),
-                  ],
-                ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text('지원: .zip .cbz',
+                        style: TextStyle(color: Colors.white38, fontSize: 12)),
+                  ),
+                ],
               ),
             ),
     );
