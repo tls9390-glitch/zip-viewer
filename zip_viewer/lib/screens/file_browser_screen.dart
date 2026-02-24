@@ -14,7 +14,7 @@ class _FileBrowserScreenState extends State<FileBrowserScreen> {
   Directory? _currentDir;
   List<FileSystemEntity> _entities = [];
   bool _loading = true;
-  bool _sortByName = true; // 정렬 기준 상태 변수 (true: 이름순, false: 날짜순)
+  bool _sortByName = true; // 정렬 기준 (true: 이름순, false: 날짜순)
 
   @override
   void initState() {
@@ -23,7 +23,6 @@ class _FileBrowserScreenState extends State<FileBrowserScreen> {
   }
 
   Future<void> _initDir() async {
-    // 내부 저장소 시작
     Directory startDir;
     try {
       startDir = Directory('/storage/emulated/0');
@@ -41,33 +40,39 @@ class _FileBrowserScreenState extends State<FileBrowserScreen> {
     setState(() => _loading = true);
     try {
       final entities = dir.listSync(followLinks: false);
-      entities.sort((a, b) {
-        final aIsDir = a is Directory;
-        final bIsDir = b is Directory;
-        
-        // 폴더를 항상 상단에 배치
-        if (aIsDir && !bIsDir) return -1;
-        if (!aIsDir && bIsDir) return 1;
-        
-        // 사용자가 선택한 기준에 따라 정렬 적용
-        if (_sortByName) {
-          // 이름 오름차순
-          return p.basename(a.path).toLowerCase()
-              .compareTo(p.basename(b.path).toLowerCase());
-        } else {
-          // 수정된 날짜 내림차순 (최신 파일이 위로)
-          final aStat = a.statSync();
-          final bStat = b.statSync();
-          return bStat.modified.compareTo(aStat.modified);
-        }
-      });
       
-      // ZIP/CBZ 파일과 폴더만 표시
+      // ZIP, CBZ 파일과 폴더만 먼저 필터링
       final filtered = entities.where((e) {
         if (e is Directory) return true;
         final ext = p.extension(e.path).toLowerCase();
         return ext == '.zip' || ext == '.cbz' || ext == '.cbr';
       }).toList();
+
+      // 필터링된 리스트 정렬
+      filtered.sort((a, b) {
+        final aIsDir = a is Directory;
+        final bIsDir = b is Directory;
+        
+        // 1순위: 폴더를 항상 상단에 배치
+        if (aIsDir && !bIsDir) return -1;
+        if (!aIsDir && bIsDir) return 1;
+        
+        // 2순위: 사용자가 선택한 기준에 따라 정렬
+        if (_sortByName) {
+          return p.basename(a.path).toLowerCase()
+              .compareTo(p.basename(b.path).toLowerCase());
+        } else {
+          try {
+            final aTime = a.statSync().modified;
+            final bTime = b.statSync().modified;
+            return bTime.compareTo(aTime); // 최신 파일이 위로 (내림차순)
+          } catch (e) {
+            // 파일 정보 읽기 실패 시 안전하게 이름순으로 대체 정렬
+            return p.basename(a.path).toLowerCase()
+                .compareTo(p.basename(b.path).toLowerCase());
+          }
+        }
+      });
 
       setState(() {
         _currentDir = dir;
@@ -95,14 +100,13 @@ class _FileBrowserScreenState extends State<FileBrowserScreen> {
           style: const TextStyle(color: Colors.white, fontSize: 16),
         ),
         actions: [
-          // 상단바 우측에 정렬 메뉴 버튼 추가
           PopupMenuButton<bool>(
             icon: const Icon(Icons.sort, color: Colors.white),
             onSelected: (bool isNameSort) {
               setState(() {
                 _sortByName = isNameSort;
                 if (_currentDir != null) {
-                  _navigateTo(_currentDir!); // 선택한 정렬 기준으로 새로고침
+                  _navigateTo(_currentDir!);
                 }
               });
             },
@@ -154,4 +158,39 @@ class _FileBrowserScreenState extends State<FileBrowserScreen> {
           : _entities.isEmpty
               ? const Center(
                   child: Text('ZIP/CBZ 파일이 없습니다',
-                      style: TextStyle(color: Colors.
+                      style: TextStyle(color: Colors.white38)))
+              : ListView.builder(
+                  itemCount: _entities.length,
+                  itemBuilder: (ctx, i) {
+                    final entity = _entities[i];
+                    final isDir = entity is Directory;
+                    final name = p.basename(entity.path);
+                    final ext = p.extension(entity.path).toLowerCase();
+
+                    return ListTile(
+                      leading: Icon(
+                        isDir
+                            ? Icons.folder
+                            : ext == '.zip'
+                                ? Icons.archive
+                                : Icons.menu_book,
+                        color: isDir
+                            ? const Color(0xFFE8B86D)
+                            : Colors.lightBlueAccent,
+                      ),
+                      title: Text(name,
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 14)),
+                      onTap: () {
+                        if (isDir) {
+                          _navigateTo(entity as Directory);
+                        } else {
+                          Navigator.pop(context, entity.path);
+                        }
+                      },
+                    );
+                  },
+                ),
+    );
+  }
+}
