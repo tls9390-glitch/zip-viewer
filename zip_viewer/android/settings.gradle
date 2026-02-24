@@ -1,0 +1,16 @@
+include ':app'
+
+def localPropertiesFile = new File(rootProject.projectDir, "local.properties")
+def properties = new Properties()
+
+assert localPropertiesFile.exists()
+localPropertiesFile.text.split("\n").each {
+    def idx = it.indexOf('=')
+    if (idx > 0) {
+        properties[it.substring(0, idx)] = it.substring(idx + 1)
+    }
+}
+
+def flutterSdkPath = properties.getProperty("flutter.sdk")
+assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
+apply from: "$flutterSdkPath/packages/flutter_tools/gradle/app_plugin_loader.gradle"
