@@ -22,6 +22,29 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
+      - name: Create launcher icon
+        run: |
+          python3 -c "
+          import struct, zlib
+          def make_png(size):
+              def chunk(name, data):
+                  c = struct.pack('>I', len(data)) + name + data
+                  return c + struct.pack('>I', zlib.crc32(name + data) & 0xffffffff)
+              sig = b'\x89PNG\r\n\x1a\n'
+              ihdr = chunk(b'IHDR', struct.pack('>IIBBBBB', size, size, 8, 2, 0, 0, 0))
+              row = b'\x00' + b'\x1a\x1a\x2e' * size
+              idat = chunk(b'IDAT', zlib.compress(row * size))
+              iend = chunk(b'IEND', b'')
+              return sig + ihdr + idat + iend
+          import os
+          sizes = {'mdpi':48,'hdpi':72,'xhdpi':96,'xxhdpi':144,'xxxhdpi':192}
+          for name, size in sizes.items():
+              os.makedirs(f'zip_viewer/android/app/src/main/res/mipmap-{name}', exist_ok=True)
+              with open(f'zip_viewer/android/app/src/main/res/mipmap-{name}/ic_launcher.png','wb') as f:
+                  f.write(make_png(size))
+          print('icons ok')
+          "
+
       - name: Flutter pub get
         working-directory: zip_viewer
         run: flutter pub get
